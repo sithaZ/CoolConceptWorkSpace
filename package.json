@@ -1,0 +1,13 @@
+{
+  "name": "coolconcept-website",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CoolConcept static Vue website",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node tests/app.test.js"
+  },
+  "engines": { "node": ">=18" }
+}
