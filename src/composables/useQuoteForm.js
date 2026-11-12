@@ -15,6 +15,7 @@ export function useQuoteForm() {
     const fileInput = ref(null);
     const submitError = ref('');
     const returnUrl = requestReturnUrl(window.location.href);
+    const formUrl = new URL(window.location.href).href;
     let recoveryTimer;
 
     // Restore the submit button when Back restores a cached page.
@@ -78,5 +79,5 @@ export function useQuoteForm() {
         }, 30000);
     }
 
-    return { form, isSubmitting, fileError, fileInput, clearFile, submitError, handleFileUpload, submitForm, contact, returnUrl };
+    return { form, isSubmitting, fileError, fileInput, clearFile, submitError, handleFileUpload, submitForm, contact, returnUrl, formUrl };
 }

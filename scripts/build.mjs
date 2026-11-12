@@ -10,7 +10,7 @@ if (dirname(output) !== resolve(root) || basename(output) !== 'dist') {
 }
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
-for (const entry of ['index.html', 'src', 'assets']) {
+for (const entry of ['index.html', 'email-test.html', 'src', 'assets']) {
     await cp(resolve(root, entry), resolve(output, entry), { recursive: true });
 }
 console.log('Built static website in dist/');

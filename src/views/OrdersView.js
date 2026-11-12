@@ -17,10 +17,8 @@ export default {
                 <input type="hidden" name="_subject" value="New CoolConcept project request">
                 <input type="hidden" name="_template" value="table">
                 <input type="hidden" name="_next" :value="returnUrl">
-                <div hidden aria-hidden="true">
-                    <label for="quote-website">Leave this field empty</label>
-                    <input id="quote-website" type="text" name="_honey" tabindex="-1" autocomplete="off">
-                </div>
+                <input type="hidden" name="_url" :value="formUrl">
+                <input type="hidden" name="_captcha" value="true">
                 <fieldset class="space-y-8 min-w-0">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">

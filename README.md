@@ -95,7 +95,7 @@ The form collects name, email, request type, project details, optional quantity,
 phone/Telegram, deadline, budget, and one reference file. The file is posted as
 `attachment`; allowed extensions are PNG, JPG, PDF, AI, and PSD, up to 10 MB.
 FormSubmit receives and processes these details. Keep the default provider CAPTCHA
-enabled; the form also includes a honeypot field. The browser opens the provider's
+enabled; the redundant honeypot has been removed to avoid silent rejection from accidental autofill. The form explicitly supplies its page URL using `_url`. The browser opens the provider's
 submission/spam-check page and returns to `#/request-sent` after processing.
 The confirmation means submitted for processing, not independently verified Gmail
 delivery. Activation and live delivery must be checked by the mailbox owner.
@@ -111,3 +111,13 @@ Local checks use mocked submission events and do not send real emails.
 
 Provider documentation: https://formsubmit.co/ and
 https://formsubmit.co/documentation
+
+## FormSubmit delivery diagnosis
+
+Open `/email-test.html` on the published website and manually submit the minimal
+browser test, completing the provider CAPTCHA if shown. The page deliberately
+omits attachments, `_honey`, and `_next` to keep the provider result visible.
+Check the recipient Gmail for both a test message and an activation email. Email
+activation must be completed by the mailbox owner. A provider success response
+is not proof that Gmail received the message. If neither email arrives after the
+browser test, contact https://formsubmit.co/support with the recipient and form URL.

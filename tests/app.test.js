@@ -110,10 +110,11 @@ test('native form sends named fields and attachments to the configured recipient
     assert.match(view.template, /:action="contact.formEndpoint" method="POST" enctype="multipart\/form-data"/);
     assert.doesNotMatch(view.template, /@submit\.prevent|formSubmitted|Demo Preview/);
     assert.doesNotMatch(view.template, /<fieldset[^>]*disabled/);
-    for (const name of ['name', 'email', 'request_type', 'quantity', 'message', 'attachment', 'phone_or_telegram', 'deadline', 'budget', '_next', '_subject', '_honey']) {
+    for (const name of ['name', 'email', 'request_type', 'quantity', 'message', 'attachment', 'phone_or_telegram', 'deadline', 'budget', '_next', '_subject', '_url', '_captcha']) {
         assert.ok(view.template.includes(`name="${name}"`), `Missing posted field: ${name}`);
     }
-    assert.doesNotMatch(view.template, /name="_captcha" value="false"/);
+    assert.match(view.template, /name="_captcha" value="true"/);
+    assert.doesNotMatch(view.template, /name="_honey"/);
     assert.equal(requestReturnUrl('https://example.com/studio/index.html#/custom-orders'), 'https://example.com/studio/index.html#/request-sent');
     assert.equal(requestReturnUrl('http://localhost:5173/#/custom-orders'), 'http://localhost:5173/index.html#/request-sent');
     assert.ok(routes.some(route => route.path === '/request-sent'));

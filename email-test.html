@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Email Delivery Test | CoolConcept</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 2rem 1rem; background: #f5f5f5; color: #171717; font: 1rem/1.6 system-ui, sans-serif; }
+        main { max-width: 38rem; margin: auto; background: white; border: 1px solid #ddd; border-radius: 1rem; padding: clamp(1.25rem, 5vw, 2.5rem); }
+        h1 { font-size: 1.75rem; line-height: 1.2; }
+        label { display: block; margin-top: 1.25rem; font-weight: 600; }
+        input, textarea, button { width: 100%; padding: 0.875rem; font: inherit; border: 1px solid #aaa; border-radius: 0.5rem; }
+        button { margin-top: 1.5rem; background: #171717; color: white; border: 0; cursor: pointer; }
+        :focus-visible { outline: 3px solid #1d4ed8; outline-offset: 3px; }
+        .notice { background: #f0f5ff; padding: 1rem; border-radius: 0.5rem; }
+        a { color: #1d4ed8; }
+        .small { font-size: 0.875rem; color: #525252; }
+    </style>
+</head>
+<body>
+<main>
+    <a href="./index.html#/custom-orders">Back to the request form</a>
+    <h1>Check email delivery</h1>
+    <p>Send a test to <strong>huothsitha@gmail.com</strong> using a simple FormSubmit form.</p>
+    <div class="notice">Complete any FormSubmit verification after clicking Send. If asked to activate the form, check the recipient's Gmail and confirm the activation link.</div>
+    <form action="https://formsubmit.co/huothsitha@gmail.com" method="POST">
+        <input type="hidden" name="_subject" value="CoolConcept browser delivery test">
+        <input type="hidden" name="_template" value="table">
+        <input type="hidden" name="_captcha" value="true">
+        <input id="source-url" type="hidden" name="_url" value="https://coolconcept-merch-studio.blissfulbear4.chatgpt.site/email-test.html">
+        <label for="test-name">Your name</label>
+        <input id="test-name" name="name" required autocomplete="name" value="CoolConcept delivery test">
+        <label for="test-email">Your reply email</label>
+        <input id="test-email" name="email" type="email" required autocomplete="email" placeholder="An email address you can access">
+        <label for="test-message">Test message</label>
+        <textarea id="test-message" name="message" rows="4" required>This is an owner-requested CoolConcept email delivery test. This is not a customer order.</textarea>
+        <button type="submit">Send delivery test</button>
+    </form>
+    <p class="small">This test has no attachments, custom redirect, or honeypot. It leaves FormSubmit's result page visible. A success response confirms submission processing; receipt must be checked in Gmail.</p>
+    <p class="small">If the test and activation email still do not arrive, use <a href="https://formsubmit.co/support" target="_blank" rel="noopener noreferrer">FormSubmit support</a> with the recipient address and this page's URL.</p>
+</main>
+<script>document.getElementById('source-url').value = window.location.href;</script>
+</body>
+</html>
