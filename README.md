@@ -101,7 +101,8 @@ Ensure its content uses `{{name}}`, `{{email}}`, and `{{message}}`.
 The form validates required fields, email, quantity, and reference URL. It disables
 controls while sending, prevents concurrent requests across pages, preserves data
 on errors, and resets only after EmailJS returns status 200. The requested success
-message appears inline in a black-and-white announcement. API acceptance does not
+message appears in a centered black-and-white popup over a blurred background.
+Dismiss it with the X button or Escape; it does not close automatically. API acceptance does not
 guarantee inbox delivery. There is no automatic retry after uncertain failures.
 The legacy confirmation URL redirects to the quote form unless this page session
 has received an accepted EmailJS response.
@@ -121,8 +122,8 @@ Automated tests use the real EmailJS SDK with mocked fetch responses and send no
    check that exactly one POST goes to `https://api.emailjs.com/api/v1.0/email/send`
    with the configured service/template/key and only the three template parameters.
 4. While pending, verify the button says "Sending..." and further submission is blocked.
-5. After a 200 response, verify the full requested confirmation text appears, all
-   fields reset, and the button becomes available again. Check EmailJS Email History
+5. After a 200 response, verify the popup shows the full requested confirmation text, all
+   fields reset, and the button becomes available again after closing the popup with X. Check EmailJS Email History
    and the configured recipient's inbox separately to confirm actual delivery.
 6. Repeat on `#/custom-orders` including optional quote fields, and verify their
    values appear within the email's message.

@@ -3,7 +3,21 @@ import { useQuoteForm } from '../composables/useQuoteForm.js';
 export default {
     name: 'InquiryForm',
     props: { detailed: { type: Boolean, default: false } },
-    setup: useQuoteForm,
+    setup() {
+        const state = useQuoteForm();
+        const successDialog = Vue.ref(null);
+        Vue.watch(state.submitSuccess, async message => {
+            if (!message) return;
+            await Vue.nextTick();
+            if (state.submitSuccess.value && successDialog.value && !successDialog.value.open) {
+                successDialog.value.showModal();
+            }
+        }, { flush: 'post' });
+        function dismissSuccess() { successDialog.value?.close(); }
+        function clearSuccess() { state.submitSuccess.value = ''; }
+        Vue.onUnmounted(() => successDialog.value?.close());
+        return { ...state, successDialog, dismissSuccess, clearSuccess };
+    },
     template: `
             <form @submit="submitForm" :aria-busy="isSubmitting" class="space-y-8 relative z-10">
                 <fieldset :disabled="isSubmitting" class="space-y-8 min-w-0">
@@ -82,7 +96,18 @@ export default {
                 </button>
                 </fieldset>
                 <p role="alert" aria-live="assertive" :class="submitError ? 'bg-gray-100 border-2 border-kroma-ink p-4 text-kroma-ink' : ''">{{ submitError }}</p>
-                <p role="status" aria-live="polite" :class="submitSuccess ? 'bg-white border-2 border-kroma-ink p-5 text-kroma-ink font-medium' : ''">{{ submitSuccess }}</p>
             </form>
+            <teleport to="body">
+                <dialog ref="successDialog" class="thank-you-dialog inquiry-success-dialog" aria-labelledby="inquiry-success-title" aria-describedby="inquiry-success-description" @close="clearSuccess">
+                    <button type="button" class="thank-you-close" aria-label="Close success message" autofocus @click="dismissSuccess">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+                    </button>
+                    <div class="thank-you-symbol" aria-hidden="true">
+                        <svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="25" stroke="currentColor" stroke-width="3"/><path d="m21 32 7 7 15-16" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <h2 id="inquiry-success-title" class="font-syne font-bold text-3xl uppercase mb-4">Thank you!</h2>
+                    <p id="inquiry-success-description">{{ submitSuccess }}</p>
+                </dialog>
+            </teleport>
     `,
 };
