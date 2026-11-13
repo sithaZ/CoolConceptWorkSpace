@@ -12,8 +12,8 @@ npm install
 npm start
 ```
 
-Open http://localhost:5173. Stop the server with Ctrl+C. No dependency installation
-or build step is required. Serve over HTTP rather than opening `index.html` as a
+Open http://localhost:5173. Stop the server with Ctrl+C. The prestart script copies
+the installed EmailJS SDK into local browser assets. Serve over HTTP rather than opening `index.html` as a
 file: browsers restrict ES module loading from `file://` URLs.
 
 ## Folder structure
@@ -67,8 +67,8 @@ npm test
 
 ## Hosting and current limits
 
-Upload this folder to static hosting, preserving relative paths. There is no
-server application or build output. `scripts/serve.mjs` is a local preview server.
+Run `npm run build` and upload `dist/` to static hosting, preserving relative paths.
+There is no server application. `scripts/serve.mjs` is a local preview server.
 
 Vue and Vue Router are pinned CDN dependencies. Tailwind uses the existing runtime
 CDN setup; Google Fonts also require internet access. All page images and the Cambodian flag are stored locally in `assets/images/`; source credits are in `assets/images/SOURCES.md`. For a
