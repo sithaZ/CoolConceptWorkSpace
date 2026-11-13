@@ -1,7 +1,7 @@
 // Public frontend identifiers; this buildless project has no environment injection.
 export const emailjsConfig = Object.freeze({
     serviceId: 'service_rt590wg',
-    templateId: 'template_pntrodx',
+    templateId: 'template_a8ikbe9',
     publicKey: '8SeH6dnaP1i0q7xRM',
 });
 

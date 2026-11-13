@@ -70,6 +70,21 @@ npm test
 Run `npm run build` and upload `dist/` to static hosting, preserving relative paths.
 There is no server application. `scripts/serve.mjs` is a local preview server.
 
+### Deploy yourself
+
+```sh
+npm ci
+npm test
+npm run build
+```
+
+Upload the contents of `dist/` to your hosting provider's public directory, or
+set its build command to `npm run build` and its publish directory to `dist`.
+The website uses relative asset URLs and hash routing, so no server-side route
+rewrites are needed. It can be hosted at a domain root or in a subdirectory.
+Use your provider's domain settings to connect your own domain. If you enabled
+an EmailJS domain allowlist, add the new domain before testing the forms.
+
 Vue and Vue Router are pinned CDN dependencies. Tailwind uses the existing runtime
 CDN setup; Google Fonts also require internet access. All page images and the Cambodian flag are stored locally in `assets/images/`; source credits are in `assets/images/SOURCES.md`. For a
 production build pipeline, bundle dependencies and compile Tailwind to static CSS.
@@ -84,7 +99,7 @@ Both `#/contact` and `#/custom-orders` use `src/components/InquiryForm.js` and
 links, deadlines, budgets, and merchandise categories. No attachments are uploaded.
 
 Public configuration lives in `src/config/emailjs.js`: service `service_rt590wg`,
-template `template_pntrodx`, and the supplied public key. This static Vue project
+template `template_a8ikbe9`, and the supplied public key. This static Vue project
 has no bundler or environment variable injection, so these frontend identifiers
 are intentionally public. Never put a private key, email password, or access token
 there. The SDK is installed from npm and copied locally by `scripts/prepare-vendor.mjs`

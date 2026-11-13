@@ -151,7 +151,7 @@ test('real SDK builds one correct request, waits for acceptance, resets and bloc
     assert.equal(requests[0].options.method, 'POST');
     const payload = JSON.parse(requests[0].options.body);
     assert.equal(payload.service_id, 'service_rt590wg');
-    assert.equal(payload.template_id, 'template_pntrodx');
+    assert.equal(payload.template_id, 'template_a8ikbe9');
     assert.equal(payload.user_id, '8SeH6dnaP1i0q7xRM');
     assert.deepEqual(Object.keys(payload.template_params).sort(), ['email', 'message', 'name']);
     assert.equal(payload.template_params.name, 'Customer Name');
