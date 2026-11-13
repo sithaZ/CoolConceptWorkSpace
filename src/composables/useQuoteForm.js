@@ -1,83 +1,85 @@
-import { contact, requestReturnUrl } from '../config/contact.js';
+import emailjs from '../../assets/vendor/emailjs/index.js';
+import { contact } from '../config/contact.js';
+import { emailjsConfig, inquirySuccessMessage } from '../config/emailjs.js';
 
-const emptyForm = () => ({
-    type: '', quantity: '', concept: '', name: '', email: '', phone: '',
-    deadline: '', budget: '', fileName: '',
-});
-const allowedExtensions = /\.(png|jpe?g|pdf|ai|psd)$/i;
-const maxFileSize = 10 * 1024 * 1024;
+const emptyForm = () => ({ type: '', quantity: '', concept: '', name: '', email: '', phone: '', deadline: '', budget: '', referenceUrl: '' });
+// Shared across form instances so changing routes cannot start a second send.
+let sending = false;
+export let submissionConfirmed = false;
 
 export function useQuoteForm() {
-    const { ref, onMounted, onUnmounted } = Vue;
+    const { ref, onUnmounted } = Vue;
     const form = ref(emptyForm());
     const isSubmitting = ref(false);
-    const fileError = ref('');
-    const fileInput = ref(null);
     const submitError = ref('');
-    const returnUrl = requestReturnUrl(window.location.href);
-    const formUrl = new URL(window.location.href).href;
-    let recoveryTimer;
+    const submitSuccess = ref('');
+    let disposed = false;
+    onUnmounted(() => { disposed = true; });
 
-    // Restore the submit button when Back restores a cached page.
-    function recoverForm() {
-        clearTimeout(recoveryTimer);
-        isSubmitting.value = false;
-    }
-    onMounted(() => window.addEventListener('pageshow', recoverForm));
-    onUnmounted(() => {
-        clearTimeout(recoveryTimer);
-        window.removeEventListener('pageshow', recoverForm);
-    });
-
-    function handleFileUpload(event) {
-        const input = event.target;
-        const file = input.files?.[0];
-        fileError.value = '';
-        form.value.fileName = '';
-        if (!file) return;
-        if (!allowedExtensions.test(file.name) || file.size > maxFileSize) {
-            fileError.value = 'Choose a PNG, JPG, PDF, AI, or PSD file up to 10 MB.';
-            input.value = '';
-            return;
-        }
-        form.value.fileName = file.name;
-    }
-
-    function clearFile() {
-        if (fileInput.value) fileInput.value.value = '';
-        form.value.fileName = '';
-        fileError.value = '';
-    }
-
-    function submitForm(event) {
+    async function submitForm(event) {
+        event.preventDefault();
+        if (isSubmitting.value) return;
         submitError.value = '';
-        if (isSubmitting.value) {
-            event.preventDefault();
+        submitSuccess.value = '';
+        if (sending) {
+            submitError.value = 'Your previous request is still sending. Please wait before submitting again.';
             return;
         }
-        if (fileError.value) {
-            event.preventDefault();
-            submitError.value = 'Please fix the reference file before sending.';
+        const values = Object.fromEntries(Object.entries(form.value).map(([key, value]) => [key, String(value).trim()]));
+        if (!values.name || !values.concept || !values.email || !values.type) {
+            submitError.value = 'Please enter your full name, email, service type, and project details.';
             return;
         }
-        if (!form.value.name.trim() || !form.value.concept.trim() || !form.value.email.trim() || !form.value.type) {
-            event.preventDefault();
-            submitError.value = 'Please enter your name, email, request type, and project details.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+            submitError.value = 'Please enter a valid email address, such as name@example.com.';
             return;
+        }
+        if (values.quantity && (!Number.isSafeInteger(Number(values.quantity)) || Number(values.quantity) < 1)) {
+            submitError.value = 'Please enter a whole quantity of at least 1, or leave it blank.';
+            return;
+        }
+        if (values.referenceUrl) {
+            try {
+                const url = new URL(values.referenceUrl);
+                if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Invalid protocol');
+            } catch {
+                submitError.value = 'Please use a valid reference link starting with https:// or http://.';
+                return;
+            }
         }
         if (window.navigator.onLine === false) {
-            event.preventDefault();
             submitError.value = 'You appear to be offline. Reconnect and send your request again.';
             return;
         }
-        // Allow the native multipart POST for attachments and provider CAPTCHA.
-        // The provider redirects to confirmation after processing the submission.
+        const message = [
+            `Service type: ${values.type}`,
+            `Phone / Telegram: ${values.phone || 'Not provided'}`,
+            `Estimated quantity: ${values.quantity || 'Not provided'}`,
+            `Preferred deadline: ${values.deadline || 'Not provided'}`,
+            `Budget: ${values.budget || 'Not provided'}`,
+            `Reference link: ${values.referenceUrl || 'Not provided'}`,
+            '', 'Project description:', values.concept,
+        ].join('\n');
         isSubmitting.value = true;
-        recoveryTimer = setTimeout(() => {
+        sending = true;
+        try {
+            const response = await emailjs.send(emailjsConfig.serviceId, emailjsConfig.templateId,
+                { name: values.name, email: values.email, message }, { publicKey: emailjsConfig.publicKey });
+            if (response.status !== 200) throw response;
+            submissionConfirmed = true;
+            if (!disposed) {
+                form.value = emptyForm();
+                submitSuccess.value = inquirySuccessMessage;
+            }
+        } catch (error) {
+            if (!disposed) submitError.value = error.status === 429
+                ? 'Too many requests right now. Please wait a moment and try again, or email us directly.'
+                : 'We could not confirm your inquiry was sent. Your details are still here. Please check your connection or email us directly before resending.';
+        } finally {
+            sending = false;
             isSubmitting.value = false;
-            submitError.value = 'If the submission page did not open, try again or email us directly.';
-        }, 30000);
+        }
     }
 
-    return { form, isSubmitting, fileError, fileInput, clearFile, submitError, handleFileUpload, submitForm, contact, returnUrl, formUrl };
+    return { form, isSubmitting, submitError, submitSuccess, submitForm, contact };
 }

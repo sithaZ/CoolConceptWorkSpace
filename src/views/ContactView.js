@@ -1,9 +1,10 @@
+import InquiryForm from '../components/InquiryForm.js';
 import SocialLinks from '../components/SocialLinks.js';
 import { contact } from '../config/contact.js';
 
 export default {
     name: "ContactView",
-    components: { SocialLinks },
+    components: { SocialLinks, InquiryForm },
     setup() { return { contact }; },
     template: `
 <div class="bg-kroma-silver min-h-screen py-10 sm:py-16">
@@ -46,7 +47,8 @@ export default {
                 <p class="text-lg mb-6">Tell us what you need, share a reference, and leave your contact details. We will reply by email.</p>
                 <router-link to="/custom-orders" class="block text-center bg-kroma-ink text-white brutal-border px-6 py-4 font-bold uppercase shadow-brutal hover-lift mb-8">Send a Project Request &rarr;</router-link>
 
-                <social-links variant="cards" />
+                <inquiry-form />
+                <div class="mt-8"><social-links variant="cards" /></div>
             </div>
         </div>
     </div>

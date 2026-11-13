@@ -11,6 +11,8 @@ globalThis.VueRouter = {
 };
 globalThis.window = { location: { href: 'https://example.com/studio/index.html#/custom-orders' }, navigator: { onLine: true }, addEventListener() {}, removeEventListener() {} };
 
+globalThis.location = new URL(window.location.href);
+
 const { routes, router } = await import('../src/router/index.js');
 const { useQuoteForm } = await import('../src/composables/useQuoteForm.js');
 const { default: header } = await import('../src/components/AppHeader.js');
@@ -22,7 +24,8 @@ test('all page routes expose their required data and form bindings', () => {
         '/shop': ['allProducts'],
         '/portfolio': ['portfolioItems'],
         '/services': ['servicesList'],
-        '/custom-orders': ['form', 'isSubmitting', 'fileError', 'submitError', 'submitForm', 'handleFileUpload', 'contact', 'returnUrl'],
+        '/custom-orders': ['contact'],
+        '/contact': ['contact'],
     };
     for (const [path, names] of Object.entries(required)) {
         const bindings = routes.find(route => route.path === path).component.setup();
@@ -45,79 +48,6 @@ test('navigation targets exist and obsolete view switching is removed', () => {
     assert.equal(router.history.type, 'hash');
     assert.deepEqual(router.scrollBehavior({}, {}, null), { top: 0, left: 0 });
     assert.deepEqual(router.scrollBehavior({}, {}, { top: 250 }), { top: 250 });
-});
-
-test('quote form rejects invalid attachments and allows removing them', () => {
-    const quote = useQuoteForm();
-    const input = file => ({ target: { files: file ? [file] : [], value: 'chosen' } });
-    quote.handleFileUpload(input({ name: 'art.pdf', size: 100 }));
-    assert.equal(quote.form.value.fileName, 'art.pdf');
-    const oversized = input({ name: 'art.png', size: 10 * 1024 * 1024 + 1 });
-    quote.handleFileUpload(oversized);
-    assert.ok(quote.fileError.value);
-    assert.equal(oversized.target.value, '');
-    assert.equal(quote.form.value.fileName, '');
-    let prevented = false;
-    quote.submitForm({ preventDefault() { prevented = true; } });
-    assert.ok(prevented);
-    assert.equal(quote.isSubmitting.value, false);
-    quote.handleFileUpload(input({ name: 'script.exe', size: 1 }));
-    assert.ok(quote.fileError.value);
-    quote.fileInput.value = { value: 'chosen' };
-    quote.clearFile();
-    assert.equal(quote.fileError.value, '');
-    assert.equal(quote.fileInput.value.value, '');
-    quote.handleFileUpload(input({ name: 'ART.JPG', size: 10 * 1024 * 1024 }));
-    assert.equal(quote.form.value.fileName, 'ART.JPG');
-    assert.equal(quote.fileError.value, '');
-});
-
-test('submission allows native POST only for valid online requests and blocks duplicates', t => {
-    let recover;
-    t.mock.method(globalThis, 'setTimeout', fn => { recover = fn; return 0; });
-    const quote = useQuoteForm();
-    const event = () => ({ prevented: false, preventDefault() { this.prevented = true; } });
-    let attempt = event();
-    quote.submitForm(attempt);
-    assert.ok(attempt.prevented);
-    assert.ok(quote.submitError.value);
-    Object.assign(quote.form.value, { type: 'general', name: 'Visitor', email: 'visitor@example.com', concept: 'Please design my logo.' });
-    window.navigator.onLine = false;
-    attempt = event();
-    quote.submitForm(attempt);
-    assert.ok(attempt.prevented);
-    assert.match(quote.submitError.value, /offline/);
-    window.navigator.onLine = true;
-    attempt = event();
-    quote.submitForm(attempt);
-    assert.equal(attempt.prevented, false);
-    assert.equal(quote.isSubmitting.value, true);
-    assert.equal(quote.submitError.value, '');
-    const duplicate = event();
-    quote.submitForm(duplicate);
-    assert.ok(duplicate.prevented);
-    recover();
-    assert.equal(quote.isSubmitting.value, false);
-    assert.match(quote.submitError.value, /try again/);
-    assert.equal(quote.form.value.concept, 'Please design my logo.');
-});
-
-test('native form sends named fields and attachments to the configured recipient', async () => {
-    const { contact, requestReturnUrl } = await import('../src/config/contact.js');
-    const view = routes.find(route => route.path === '/custom-orders').component;
-    assert.equal(contact.formEndpoint, 'https://formsubmit.co/huothsitha@gmail.com');
-    assert.equal(contact.email, 'huothsitha@gmail.com');
-    assert.match(view.template, /:action="contact.formEndpoint" method="POST" enctype="multipart\/form-data"/);
-    assert.doesNotMatch(view.template, /@submit\.prevent|formSubmitted|Demo Preview/);
-    assert.doesNotMatch(view.template, /<fieldset[^>]*disabled/);
-    for (const name of ['name', 'email', 'request_type', 'quantity', 'message', 'attachment', 'phone_or_telegram', 'deadline', 'budget', '_next', '_subject', '_url', '_captcha']) {
-        assert.ok(view.template.includes(`name="${name}"`), `Missing posted field: ${name}`);
-    }
-    assert.match(view.template, /name="_captcha" value="true"/);
-    assert.doesNotMatch(view.template, /name="_honey"/);
-    assert.equal(requestReturnUrl('https://example.com/studio/index.html#/custom-orders'), 'https://example.com/studio/index.html#/request-sent');
-    assert.equal(requestReturnUrl('http://localhost:5173/#/custom-orders'), 'http://localhost:5173/index.html#/request-sent');
-    assert.ok(routes.some(route => route.path === '/request-sent'));
 });
 
 test('entry point and local image references resolve', async () => {
@@ -164,4 +94,109 @@ test('image failures switch to a local fallback without an error loop', async ()
     fallback.mounted(cachedFailure);
     assert.ok(cachedFailure.src.endsWith('/assets/images/image-unavailable.svg'));
     fallback.unmounted(cachedFailure);
+});
+
+const validValues = { type: 'Branding', name: '  Customer Name  ', email: ' customer@example.com ', concept: 'Logo and packaging', phone: '+85512345678', quantity: '25', deadline: '2026-12-15', budget: 'USD 250', referenceUrl: 'https://example.com/art' };
+const event = () => ({ preventDefault() { this.prevented = true; } });
+
+test('validation blocks invalid requests before calling EmailJS', async t => {
+    let calls = 0;
+    t.mock.method(globalThis, 'fetch', async () => { calls++; throw new Error('Unexpected send'); });
+    const quote = useQuoteForm();
+    const attempt = event();
+    await quote.submitForm(attempt);
+    assert.ok(attempt.prevented);
+    assert.match(quote.submitError.value, /full name/);
+    Object.assign(quote.form.value, validValues, { email: 'invalid-email' });
+    await quote.submitForm(event());
+    assert.match(quote.submitError.value, /valid email/);
+    quote.form.value.email = 'customer@example.com';
+    quote.form.value.quantity = '1.5';
+    await quote.submitForm(event());
+    assert.match(quote.submitError.value, /whole quantity/);
+    quote.form.value.quantity = '';
+    quote.form.value.referenceUrl = 'https://';
+    await quote.submitForm(event());
+    assert.match(quote.submitError.value, /valid reference/);
+    quote.form.value.referenceUrl = '';
+    window.navigator.onLine = false;
+    try {
+        await quote.submitForm(event());
+        assert.match(quote.submitError.value, /offline/);
+    } finally { window.navigator.onLine = true; }
+    assert.equal(calls, 0);
+});
+
+test('real SDK builds one correct request, waits for acceptance, resets and blocks duplicates across forms', async t => {
+    let finish;
+    const requests = [];
+    t.mock.method(globalThis, 'fetch', (url, options) => {
+        requests.push({ url, options });
+        return new Promise(resolve => { finish = resolve; });
+    });
+    const quote = useQuoteForm();
+    Object.assign(quote.form.value, validValues);
+    const pending = quote.submitForm(event());
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(quote.isSubmitting.value, true);
+    assert.equal(quote.submitSuccess.value, '');
+    assert.equal(quote.form.value.name, validValues.name);
+    await quote.submitForm(event());
+    const contactForm = useQuoteForm();
+    Object.assign(contactForm.form.value, validValues);
+    await contactForm.submitForm(event());
+    assert.match(contactForm.submitError.value, /still sending/);
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].url, 'https://api.emailjs.com/api/v1.0/email/send');
+    assert.equal(requests[0].options.method, 'POST');
+    const payload = JSON.parse(requests[0].options.body);
+    assert.equal(payload.service_id, 'service_rt590wg');
+    assert.equal(payload.template_id, 'template_pntrodx');
+    assert.equal(payload.user_id, '8SeH6dnaP1i0q7xRM');
+    assert.deepEqual(Object.keys(payload.template_params).sort(), ['email', 'message', 'name']);
+    assert.equal(payload.template_params.name, 'Customer Name');
+    assert.equal(payload.template_params.email, 'customer@example.com');
+    for (const value of ['Branding', '+85512345678', '25', '2026-12-15', 'USD 250', 'https://example.com/art', 'Logo and packaging']) {
+        assert.ok(payload.template_params.message.includes(value));
+    }
+    finish(new Response('OK', { status: 200 }));
+    await pending;
+    const { inquirySuccessMessage } = await import('../src/config/emailjs.js');
+    assert.equal(quote.submitSuccess.value, inquirySuccessMessage);
+    assert.equal(quote.form.value.name, '');
+    assert.equal(quote.form.value.concept, '');
+    assert.equal(quote.isSubmitting.value, false);
+    assert.equal(quote.submitError.value, '');
+});
+
+test('provider and network failures preserve form data and allow retry', async t => {
+    for (const status of [400, 403, 429, 500, 'network']) {
+        t.mock.method(globalThis, 'fetch', async () => {
+            if (status === 'network') throw new TypeError('Failed to fetch');
+            return new Response('Provider error', { status });
+        });
+        const quote = useQuoteForm();
+        Object.assign(quote.form.value, validValues);
+        await quote.submitForm(event());
+        assert.ok(quote.submitError.value);
+        assert.equal(quote.submitSuccess.value, '');
+        assert.equal(quote.form.value.concept, validValues.concept);
+        assert.equal(quote.isSubmitting.value, false);
+    }
+});
+
+test('forms use accessible shared controls and preserve quote extras', async () => {
+    const { default: inquiry } = await import('../src/components/InquiryForm.js');
+    assert.match(inquiry.template, /<form @submit="submitForm"/);
+    assert.match(inquiry.template, /:disabled="isSubmitting"/);
+    assert.match(inquiry.template, /Sending\.\.\./);
+    assert.match(inquiry.template, /role="alert"/);
+    assert.match(inquiry.template, /role="status"/);
+    assert.doesNotMatch(inquiry.template, /formspree|formsubmit|:action=/i);
+    for (const name of ['name', 'email', 'request_type', 'quantity', 'message', 'phone_or_telegram', 'deadline', 'budget', 'reference_url']) {
+        assert.ok(inquiry.template.includes('name="' + name + '"'));
+    }
+    for (const path of ['/contact', '/custom-orders']) {
+        assert.match(routes.find(route => route.path === path).component.template, /<inquiry-form/);
+    }
 });

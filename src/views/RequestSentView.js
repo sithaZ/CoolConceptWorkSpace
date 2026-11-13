@@ -1,3 +1,5 @@
+import { submissionConfirmed } from '../composables/useQuoteForm.js';
+import { inquirySuccessMessage } from '../config/emailjs.js';
 import { contact } from '../config/contact.js';
 import OrdersView from './OrdersView.js';
 
@@ -6,9 +8,13 @@ export default {
     components: { OrdersView },
     setup() {
         const dialog = Vue.ref(null);
-        Vue.onMounted(() => dialog.value?.showModal());
+        const router = VueRouter.useRouter();
+        Vue.onMounted(() => {
+            if (submissionConfirmed) dialog.value?.showModal();
+            else router.replace('/custom-orders');
+        });
         function dismiss() { window.location.hash = '/custom-orders'; }
-        return { contact, dialog, dismiss };
+        return { contact, dialog, dismiss, inquirySuccessMessage };
     },
     template: `
         <div>
@@ -23,7 +29,7 @@ export default {
                 <p class="thank-you-eyebrow">A little idea. A great beginning.</p>
                 <h1 id="thank-you-title">Thank you!</h1>
                 <p class="thank-you-lead">Thank you for supporting CoolConcept.</p>
-                <p id="thank-you-description">Your request has been submitted for email processing. We're excited to hear what you have in mind and help bring your ideas to life.</p>
+                <p id="thank-you-description">{{ inquirySuccessMessage }}</p>
                 <div class="thank-you-next">
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></svg>
                     <p>We'll review your details and reply to your email to discuss your project, pricing, and the next steps.</p>

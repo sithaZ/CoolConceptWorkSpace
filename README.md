@@ -8,6 +8,7 @@ shared data, and form logic. The layout uses a black-and-white base with selecte
 Requires Node.js 18 or newer. From this folder:
 
 ```sh
+npm install
 npm start
 ```
 
@@ -74,50 +75,59 @@ CDN setup; Google Fonts also require internet access. All page images and the Ca
 production build pipeline, bundle dependencies and compile Tailwind to static CSS.
 
 The shop remains a visual demo: filters, Quick View, and Add to Bag are not wired.
-Set your Telegram, Instagram, and Facebook profile URLs in `src/config/socials.js`. Blank URLs display the channel as coming soon instead of opening a fake link. Shared social styling is in `src/components/SocialLinks.js`. Requests use FormSubmit to email
-`huothsitha@gmail.com`, with the visitor's email available for replies. Form state
-resets when leaving the request page.
+Set your Telegram, Instagram, and Facebook profile URLs in `src/config/socials.js`. Blank URLs display the channel as coming soon instead of opening a fake link. Shared social styling is in `src/components/SocialLinks.js`.
 
-## Email request setup
+## EmailJS contact and quotation requests
 
-The request form posts directly to `https://formsubmit.co/huothsitha@gmail.com`.
-No Gmail password or API key is included in this project. The shared recipient and
-endpoint are in `src/config/contact.js`.
+Both `#/contact` and `#/custom-orders` use `src/components/InquiryForm.js` and
+`src/composables/useQuoteForm.js`. The quotation form retains optional reference
+links, deadlines, budgets, and merchandise categories. No attachments are uploaded.
 
-1. Serve the website over HTTP(S), open `#/custom-orders`, and send an owner test
-   request using your own contact details.
-2. Check `huothsitha@gmail.com` (including Spam) for FormSubmit's activation email
-   and click the confirmation link. Normal email delivery requires activation.
-3. Submit another test and verify the message and optional attachment arrive.
-   Reply to it to check the visitor's Reply-To address.
+Public configuration lives in `src/config/emailjs.js`: service `service_rt590wg`,
+template `template_pntrodx`, and the supplied public key. This static Vue project
+has no bundler or environment variable injection, so these frontend identifiers
+are intentionally public. Never put a private key, email password, or access token
+there. The SDK is installed from npm and copied locally by `scripts/prepare-vendor.mjs`
+before start, test, and build; no additional runtime CDN is used for EmailJS.
 
-The form collects name, email, request type, project details, optional quantity,
-phone/Telegram, deadline, budget, and one reference file. The file is posted as
-`attachment`; allowed extensions are PNG, JPG, PDF, AI, and PSD, up to 10 MB.
-FormSubmit receives and processes these details. Keep the default provider CAPTCHA
-enabled; the redundant honeypot has been removed to avoid silent rejection from accidental autofill. The form explicitly supplies its page URL using `_url`. The browser opens the provider's
-submission/spam-check page and returns to `#/request-sent` after processing.
-The confirmation means submitted for processing, not independently verified Gmail
-delivery. Activation and live delivery must be checked by the mailbox owner.
+Each valid submission makes one EmailJS SDK send call, following the
+[official send API](https://www.emailjs.com/docs/sdk/send/), with exactly
+`name`, `email`, and `message` as template parameters. Phone, service,
+quantity, deadline, budget, reference URL, and project details are combined in
+`message`. No second email or auto-reply template is called by the website.
+Configure the template's destination in EmailJS and use `{{email}}` for Reply-To.
+Ensure its content uses `{{name}}`, `{{email}}`, and `{{message}}`.
 
-Required browser fields, whitespace checks, file checks, an offline error, and a
-busy state help visitors submit a complete request. A failed provider/network
-navigation may display the provider/browser's error page; visitors can return and
-retry or use the direct email link. No local success state is fabricated before
-the provider redirects back. Fields remain enabled during native submission so
-the browser includes their values and attachments in the POST.
+The form validates required fields, email, quantity, and reference URL. It disables
+controls while sending, prevents concurrent requests across pages, preserves data
+on errors, and resets only after EmailJS returns status 200. The requested success
+message appears inline in a black-and-white announcement. API acceptance does not
+guarantee inbox delivery. There is no automatic retry after uncertain failures.
+The legacy confirmation URL redirects to the quote form unless this page session
+has received an accepted EmailJS response.
 
-Local checks use mocked submission events and do not send real emails.
+### Build and automated checks
 
-Provider documentation: https://formsubmit.co/ and
-https://formsubmit.co/documentation
+Run `npm test` and `npm run build`. There is no configured lint command.
+The build copies the static website, including the npm SDK assets, into `dist/`.
+Deploy `dist/` to static hosting with all relative paths preserved.
+Automated tests use the real EmailJS SDK with mocked fetch responses and send no email.
 
-## FormSubmit delivery diagnosis
+### Manual testing
 
-Open `/email-test.html` on the published website and manually submit the minimal
-browser test, completing the provider CAPTCHA if shown. The page deliberately
-omits attachments, `_honey`, and `_next` to keep the provider result visible.
-Check the recipient Gmail for both a test message and an activation email. Email
-activation must be completed by the mailbox owner. A provider success response
-is not proof that Gmail received the message. If neither email arrives after the
-browser test, contact https://formsubmit.co/support with the recipient and form URL.
+1. Run `npm install` then `npm start`; open http://localhost:5173/#/contact.
+2. Try blank required fields, an invalid email, and an invalid quantity; no email request should occur.
+3. Enter your own test details and select a service. Submit once. In browser DevTools,
+   check that exactly one POST goes to `https://api.emailjs.com/api/v1.0/email/send`
+   with the configured service/template/key and only the three template parameters.
+4. While pending, verify the button says "Sending..." and further submission is blocked.
+5. After a 200 response, verify the full requested confirmation text appears, all
+   fields reset, and the button becomes available again. Check EmailJS Email History
+   and the configured recipient's inbox separately to confirm actual delivery.
+6. Repeat on `#/custom-orders` including optional quote fields, and verify their
+   values appear within the email's message.
+7. Use DevTools offline mode or request blocking to simulate failure. Verify that
+   no success message appears, entered details remain, and you can retry after recovery.
+8. Check keyboard navigation, input labels, focus rings, and layouts at mobile,
+   tablet, and desktop widths. If you configured an EmailJS domain allowlist,
+   include the production hostname and your local testing origin as needed.

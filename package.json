@@ -7,7 +7,15 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node tests/app.test.js"
+    "test": "node tests/app.test.js",
+    "prestart": "node scripts/prepare-vendor.mjs",
+    "prebuild": "node scripts/prepare-vendor.mjs",
+    "pretest": "node scripts/prepare-vendor.mjs"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@emailjs/browser": "^5.0.3"
+  }
 }

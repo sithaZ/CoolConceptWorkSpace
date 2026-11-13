@@ -1,6 +1,5 @@
 export const contact = {
     email: 'huothsitha@gmail.com',
-    formEndpoint: 'https://formsubmit.co/huothsitha@gmail.com',
 };
 
 export function requestReturnUrl(pageUrl) {
